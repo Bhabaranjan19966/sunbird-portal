@@ -24,7 +24,6 @@ export class QuestionCreationHeaderComponent implements OnInit,OnChanges {
   }
 
   reviewerBtnclick(event, buttonType){
-    console.log('Question metadata',this.questionMetaData);
     this.questionStatus.emit(buttonType);
   }
 

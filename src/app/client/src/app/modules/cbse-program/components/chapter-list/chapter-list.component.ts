@@ -35,8 +35,7 @@ export class ChapterListComponent implements OnInit,OnChanges{
     private userService: UserService, public actionService: ActionService, public toasterService: ToasterService) {
   }
   private labelsHandler(){
-    this.labels = (this.role.currentRole == 'REVIEWER') ? ['Draft', 'Live'] : ['Total','Created by me'] ;   
-    console.log(this.labels);
+    this.labels = (this.role.currentRole == 'REVIEWER') ? ['Live','In Review'] : ['Total','Created by me'];
   }
   ngOnInit() {
     this.labelsHandler();
@@ -66,7 +65,6 @@ export class ChapterListComponent implements OnInit,OnChanges{
           }
         });
         this.textBookMeta = textBookMetaData;
-        console.log('textBookMetaData', textBookMetaData);
         this.showChapterList(textBookMetaData);
     }, error => {
       this.showLoader = false;
@@ -80,8 +78,8 @@ export class ChapterListComponent implements OnInit,OnChanges{
       apiRequest = [...this.questionType.map(fields => this.searchQuestionsByType(fields)),
         ...this.questionType.map(fields => this.searchQuestionsByType(fields, this.userService.userid))];
     } else if (this.selectedAttributes.currentRole === 'REVIEWER') {
-      apiRequest = [...this.questionType.map(fields => this.searchQuestionsByType(fields,"",'Review')),
-      ...this.questionType.map(fields => this.searchQuestionsByType(fields,"",'Live')) ];
+      apiRequest = [...this.questionType.map(fields => this.searchQuestionsByType(fields,"",'Live')),
+      ...this.questionType.map(fields => this.searchQuestionsByType(fields,"",'Review')) ];
     }
     if (!apiRequest) {
       this.showLoader = false;

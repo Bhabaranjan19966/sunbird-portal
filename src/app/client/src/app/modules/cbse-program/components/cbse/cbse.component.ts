@@ -46,7 +46,7 @@ export class CbseComponent implements OnInit {
       board: _.get(this.programDetails, 'config.scope.board[0]'),
       medium: _.get(this.programDetails, 'config.scope.medium[0]'),
       bloomsLevel: _.get(this.programDetails, 'config.scope.bloomsLevel'),
-      programId: _.get(this.programDetails, 'programId'),
+      programId:  _.get(this.programDetails, 'programId'),
       program: _.get(this.programDetails, 'name')
     };
     this.role.currentRole= this.selectedAttributes.currentRole;

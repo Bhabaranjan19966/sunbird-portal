@@ -31,7 +31,6 @@ export class QuestionListComponent implements OnInit,OnChanges{
     }
   }
   ngOnInit() {
-    console.log('changes detected in question list',this.role);
     this.fetchQuestionWithRole()
     this.enableRoleChange = true;
   }
@@ -115,7 +114,7 @@ export class QuestionListComponent implements OnInit,OnChanges{
     this.refreshEditor();
   }
   public questionStatusHandler(event) {
-    console.log('editor event', event);
+    
     if (event.type === 'close') {
       this.questionMetaData = {};
       if (this.questionList.length) {
@@ -135,7 +134,7 @@ export class QuestionListComponent implements OnInit,OnChanges{
       }
     }
   }
-  
+
   handleRefresEvent(){
     this.refreshEditor();
   }

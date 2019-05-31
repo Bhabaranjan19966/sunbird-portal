@@ -312,7 +312,6 @@ export class QuestionCreationComponent implements OnInit, AfterViewInit, OnChang
         if(optionalParams){
           _.forEach(optionalParams,(param) =>{
             option.data.request.assessment_item.metadata[param.key] = param.value;
-            console.log(option.data.request.assessment_item.metadata[param.key]);
           })
         }
         this.actionService.patch(option).subscribe((res) => {
