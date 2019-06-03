@@ -79,6 +79,8 @@ export class McqCreationComponent implements OnInit, OnChanges {
       this.buttonTypeHandler('preview');
     }
   }
+
+  
   ngOnChanges() {
     if (this.role.currentRole === 'REVIEWER') {
       this.showPreview = true;
