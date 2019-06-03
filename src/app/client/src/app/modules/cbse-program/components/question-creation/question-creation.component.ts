@@ -3,6 +3,7 @@ import { Component, OnInit, AfterViewInit, Output, Input, EventEmitter ,
 import { ActivatedRoute, Router } from '@angular/router';
 import {  ConfigService, ResourceService, IUserData, IUserProfile, ToasterService  } from '@sunbird/shared';
 import { PublicDataService, UserService, ActionService } from '@sunbird/core';
+import { TelemetryService } from '@sunbird/telemetry';
 import { Validators, FormGroup, FormControl } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { HttpClient } from '@angular/common/http';
@@ -33,6 +34,7 @@ export class QuestionCreationComponent implements OnInit, AfterViewInit, OnChang
   private prevShowPreview = true;
   public previewData: any;
   public mediaArr = [];
+  public rejectComment:any;
   showFormError = false;
   @Input() tabIndex: any;
   @Input() questionMetaData: any;
@@ -48,7 +50,7 @@ export class QuestionCreationComponent implements OnInit, AfterViewInit, OnChang
     private http: HttpClient,
     publicDataService: PublicDataService,
     toasterService: ToasterService,
-    resourceService: ResourceService,
+    resourceService: ResourceService, public telemetryService: TelemetryService,
     public actionService: ActionService, private cdr: ChangeDetectorRef
   ) {
     this.userService = userService;
@@ -70,6 +72,7 @@ export class QuestionCreationComponent implements OnInit, AfterViewInit, OnChang
   errorMsg: string;
   topicName: string;
   learningOutcomeOptions = [];
+  updateStatus = 'update';
   bloomsLevelOptions = ['remember', 'understand', 'apply', 'analyse', 'evaluate', 'create'];
   ngOnInit() {
     this.initialized = true;
@@ -98,9 +101,12 @@ export class QuestionCreationComponent implements OnInit, AfterViewInit, OnChang
         // this.questionMetaForm.controls.maxScore.setValue(this.questionMetaData.data.maxScore);
         this.mediaArr = this.questionMetaData.data.media || [];
     }
-    if(this.role.currentRole == 'REVIEWER'){
+    if (this.role.currentRole === 'REVIEWER') {
       this.showPreview = true;
-      this.buttonTypeHandler('preview')
+      this.buttonTypeHandler('preview');
+    }    
+    if(this.questionMetaData.mode === 'edit' && this.questionMetaData.data.status=== 'Reject' && this.questionMetaData.data.rejectComment){
+      this.rejectComment = this.questionMetaData.data.rejectComment;
     }
   }
 
@@ -131,10 +137,10 @@ export class QuestionCreationComponent implements OnInit, AfterViewInit, OnChang
         this.questionMetaForm.reset();
       }
     }
-    if(this.role.currentRole == 'REVIEWER'){
+    if (this.role.currentRole === 'REVIEWER') {
       this.showPreview = true;
       // this.buttonTypeHandler('preview')
-    }else{      
+    } else {
       this.showPreview = false;
     }
   }
@@ -176,8 +182,8 @@ export class QuestionCreationComponent implements OnInit, AfterViewInit, OnChang
       }
     });
   }
-  handleReviewrStatus(event){
-    this.updateQuestion([{key:'status', value: event}])
+  handleReviewrStatus(event) {
+    this.updateQuestion([{key: 'status', value: event.status}, {key: 'rejectComment', value: event.rejectComment}]);
   }
   buttonTypeHandler(event) {
     if (event === 'preview') {
@@ -219,7 +225,10 @@ export class QuestionCreationComponent implements OnInit, AfterViewInit, OnChang
     .subscribe((res) => {
       this.body = res[0];
       this.solution = res[1];
-
+      let creator = this.userService.userProfile.firstName;
+      if (!_.isEmpty(this.userService.userProfile.lastName)) {
+        creator = this.userService.userProfile.firstName + ' ' + this.userService.userProfile.lastName;
+      }
       const req = {
         url: this.configService.urlConFig.URLS.ASSESSMENT.CREATE,
         data: {
@@ -228,6 +237,8 @@ export class QuestionCreationComponent implements OnInit, AfterViewInit, OnChang
               'objectType': 'AssessmentItem',
               'metadata': {
                 'createdBy': this.userService.userid,
+                'creator': creator,
+                'createdFor': this.selectedAttributes.school ? [this.selectedAttributes.school] : [],
                 'code': UUID.UUID(),
                 'type': 'reference',
                 'category': this.selectedAttributes.questionType.toUpperCase(),
@@ -268,6 +279,17 @@ export class QuestionCreationComponent implements OnInit, AfterViewInit, OnChang
         this.questionStatus.emit({'status': 'success', 'type': 'create', 'identifier': res.result.node_id});
       }, error => {
         this.toasterService.error(_.get(error, 'error.params.errmsg') || 'Question creation failed');
+        const telemetryErrorData = {
+          context: {
+            env: 'cbse_program'
+          },
+          edata: {
+            err: error.status.toString(),
+            errtype: 'PROGRAMPORTAL',
+            stacktrace: _.get(error, 'error.params.errmsg') || 'Question creation failed'
+          }
+        };
+        this.telemetryService.error(telemetryErrorData);
       });
     });
   }
@@ -309,17 +331,29 @@ export class QuestionCreationComponent implements OnInit, AfterViewInit, OnChang
             }
           }
         };
-        if(optionalParams){
-          _.forEach(optionalParams,(param) =>{
+        if (optionalParams) {
+          _.forEach(optionalParams, (param) => {
             option.data.request.assessment_item.metadata[param.key] = param.value;
-          })
+            if (param.key === 'status') {
+              this.updateStatus = param.value;
+            }
+          });
         }
         this.actionService.patch(option).subscribe((res) => {
-          this.questionStatus.emit({'status': 'success', 'type': 'update', 'identifier': this.questionMetaData.data.identifier});
-          console.log('Question Update', res);
-          if(res.responseCode  == "OK"){
-            this.statusEmitter.emit('refreshQuestionList');
-          }
+          this.questionStatus.emit({'status': 'success', 'type': this.updateStatus, 'identifier': this.questionMetaData.data.identifier});
+        }, error => {
+            this.toasterService.error(_.get(error, 'error.params.errmsg') || 'Question update failed');
+            const telemetryErrorData = {
+              context: {
+                env: 'cbse_program'
+              },
+              edata: {
+                err: error.status.toString(),
+                errtype: 'PROGRAMPORTAL',
+                stacktrace: _.get(error, 'error.params.errmsg') || 'Question update failed'
+              }
+            };
+            this.telemetryService.error(telemetryErrorData);
         });
       });
   }
